@@ -4,10 +4,11 @@
 
 # 修改：
 # 1、
+# tf.nn.softmax_cross_entropy_with_logits(logits, labels) 本身包含softmax
+# 所以将
 # out_layer = tf.nn.softmax(tf.add(tf.matmul(hidden_layer, Weights['out']), bias['out']))
 # 改为
 # out_layer = tf.add(tf.matmul(hidden_layer, Weights['out']), bias['out'])
-# 并在准确率处加上 p = tf.nn.softmax(pred)
 # 2、
 # rate过大，从0.1改为0.005
 # 3、
@@ -67,8 +68,7 @@ cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, label
 optimizer = tf.train.AdamOptimizer(learning_rate=rate).minimize(cost)
 
 # 准确率
-p = tf.nn.softmax(pred)
-correct_pred = tf.equal(tf.argmax(p,1), tf.argmax(y,1))
+correct_pred = tf.equal(tf.argmax(pred,1), tf.argmax(y,1))
 accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
 # 初始化
