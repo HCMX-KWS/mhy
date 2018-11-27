@@ -1,19 +1,31 @@
-# TensorFlow搭建MLP
-# 还有问题，待修改
+# 每次训练送进100条语音，每条语音有500帧，每帧特征是64维
+# 隐藏层有128个节点
+# 输出是1000维的one-hot向量
+
+# 修改：
+# 1、
+# out_layer = tf.nn.softmax(tf.add(tf.matmul(hidden_layer, Weights['out']), bias['out']))
+# 改为
+# out_layer = tf.add(tf.matmul(hidden_layer, Weights['out']), bias['out'])
+# 并在准确率处加上 p = tf.nn.softmax(pred)
+# 2、
+# rate过大，从0.1改为0.005
+# 3、
+# n_sample过大，从10000减为300
 
 import tensorflow as tf
 import numpy as np
 
 # 设置参数
-n_sample = 1000
-rate = 0.1
+n_sample = 300
+rate = 0.005
 epoch = 50
-display = 10
+display = 1
 batch_size = 100
 
 # 假装有数据
 data = np.random.rand(n_sample, 500, 64)
-label = np.random.randint(n_sample, size=1000)
+label = np.random.randint(1000, size=n_sample)
 input = []
 output = []
 
@@ -25,7 +37,7 @@ for i in range(n_sample):
 
 # 模型
 n_input = 64 * 500
-n_hidden = 128
+n_hidden = 1024
 n_output = 1000
 
 x = tf.placeholder("float", [None, n_input])
@@ -43,7 +55,7 @@ bias = {
 def model(x, Weights, bias):
 
     hidden_layer = tf.nn.relu(tf.add(tf.matmul(x, Weights['h']), bias['h']))
-    out_layer = tf.nn.softmax(tf.add(tf.matmul(hidden_layer, Weights['out']), bias['out']))
+    out_layer = tf.add(tf.matmul(hidden_layer, Weights['out']), bias['out'])
 
     return out_layer
 
@@ -55,7 +67,8 @@ cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, label
 optimizer = tf.train.AdamOptimizer(learning_rate=rate).minimize(cost)
 
 # 准确率
-correct_pred = tf.equal(tf.argmax(pred,1), tf.argmax(y,1))
+p = tf.nn.softmax(pred)
+correct_pred = tf.equal(tf.argmax(p,1), tf.argmax(y,1))
 accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
 # 初始化
@@ -63,13 +76,12 @@ init = tf.global_variables_initializer()
 
 with tf.Session() as sess:
     sess.run(init)
+    total_batch = int(n_sample / batch_size)
 
     for step in range(epoch):
         acc_total = 0
-        total_batch = int(n_sample / batch_size)
-
         for i in range(total_batch):
-            _, acc = sess.run([optimizer, accuracy], feed_dict = {x:input, y:output})
+            _, acc = sess.run([optimizer, accuracy], feed_dict = {x:input[i*batch_size:(i+1)*batch_size], y:output[i*batch_size:(i+1)*batch_size]})
             acc_total += acc
 
         if((step + 1)% display == 0):
